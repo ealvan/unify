@@ -8,3 +8,4 @@ rayon = "1.7"
 log = "0.4"
 fern = "0.6"
 chrono = "0.4"  # For timestamp formatting
+itertools = "0.13"
