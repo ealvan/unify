@@ -11,7 +11,7 @@ use std::thread::current;
 use log::{info, error};
 use fern::{meta, Dispatch};
 use std::collections::HashSet;
-use std::path::Path;
+use std::path::{self, Path};
 use std::io::Write;
 use std::fs::{DirBuilder,Metadata};
 
@@ -94,10 +94,13 @@ fn create_dir(dir_path: &str) -> Result<(),io::Error>{
 
 fn move_file(source: &str, destination: &str) -> Result<(), io::Error> {
     fs::rename(source, destination)?; // Move the file from source to destination
+    println!("source: {} -- destination: {}", source, destination);
     Ok(()) // Return Ok if the operation completes successfully
 }
 fn delete_file(file_path: &str) -> Result<(), io::Error> {
+    
     fs::remove_file(file_path)?; // Delete the file at the specified path
+    println!("Remove file: {} ... OK", file_path);
     Ok(()) // Return Ok if the operation completes successfully
 }
 
@@ -170,25 +173,49 @@ fn do_versions(intersection_file: &str){
                 Ok(val) => (val.0, val.1),
                 Err(why) => panic!("{}",why)
             };
-
+            root3_file.push_str(&line);
+            let path_version = Path::new(&root3_file);
+            let parent_path = path_version.parent().unwrap().to_str().unwrap();
+            let parent_path_ = Path::new(&parent_path);
+            if ! parent_path_.exists(){
+                let pdest = parent_path_.display().to_string();
+                create_dir_path(&pdest);
+            }
             if fr1 == fr2{
                 // delete_file(&)
                 println!("== > File r1: {}\nFile r2: {} size: {}", &root1_file,&root2_file, &fr1);
                 println!("lacc1: {} lacc2: {}",lacc1, lacc2);
+
                 if lacc1 > lacc2{
                     //delete file root2
-                    root3_file.push_str(&line);
-                    delete_file(&root2_file).expect("Cannot delete file r2 file");
+                    delete_file(&root2_file).expect("Cannot delete r2 file");
                     match move_file(&root1_file, &root3_file) {
                         Ok(_) => println!("move_file OK"),
                         Err(why) => println!("{}",why)
                     };
                 }else{
                     //delete file root1
-                    delete_file(&root1_file).expect("Cannot delete file r1 file");
+                    delete_file(&root1_file).expect("Cannot delete r1 file");
+                    match move_file(&root2_file, &root3_file) {
+                        Ok(_) => println!("move_file OK"),
+                        Err(why) => println!("{}",why)
+                    };
                 }
             }else{
                 println!("!= > File r1: {}\nFile r2: {} fs1:{} fs2:{}", &root1_file, &root2_file, &fr1, &fr2);
+                let filename = path_version.file_name().unwrap().to_str().unwrap();
+                let new_version_path = format!("{parent_path}/v1_{filename}");
+                
+                match move_file(&root1_file, &new_version_path) {
+                    Ok(_) => println!("move_file OK"),
+                    Err(why) => println!("{}",why)
+                };
+                let new_version_path = format!("{parent_path}/v2_{filename}");
+
+                match move_file(&root2_file, &new_version_path) {
+                    Ok(_) => println!("move_file OK"),
+                    Err(why) => println!("{}",why)
+                };
             }
 
         }
