@@ -1,11 +1,12 @@
+use std::alloc::System;
 use std::error::Error;
 use std::fmt::format;
 #[warn(unused_variables)]
-
 use std::io;
 use std::fs::{self, read_to_string, OpenOptions};
 use std::os::linux::fs::MetadataExt;
 use std::thread::current;
+use std::time::SystemTime;
 
 // use rayon::prelude::*;
 use log::{info, error};
@@ -15,9 +16,9 @@ use std::path::{self, Path};
 use std::io::Write;
 use std::fs::{DirBuilder,Metadata};
 
-const ROOT1: &str = "r1"; 
-const ROOT2: &str = "r2"; 
-const ROOT3: &str = "r3"; 
+const ROOT1: &str = "/mnt/e/box_2024-02-23/data/documentsEdsel/COMEDOR"; //E:\box_2024-02-23\data\documentsEdsel\COMEDOR
+const ROOT2: &str = "/mnt/e/Boxalmost2023-76.8/box/documentsEdsel/COMEDOR"; //E:\Boxalmost2023-76.8\box\documentsEdsel\COMEDOR
+const ROOT3: &str = "/mnt/e/test_script"; 
 const INTERSECTION:&str = "root1_and_root2.log";
 const R1_R2:&str = "root1-root2.log";
 const R2_R1:&str = "root2-root1.log";
@@ -147,9 +148,10 @@ fn move_files(from: &str, to: &str, prefix: &str){
     }
 
 }
-fn get_filesize_and_lastupdate(file_path: &str) -> Result<(u64,i64), io::Error>{
+fn get_filesize_and_lastupdate(file_path: &str) -> Result<(u64,SystemTime), io::Error>{
     let metadata = fs::metadata(&file_path)?;
-    Ok((metadata.len(), metadata.st_atime()))
+    let time = metadata.created()?;
+    Ok((metadata.len(), time))
 }
 
 fn do_versions(intersection_file: &str){
@@ -167,11 +169,17 @@ fn do_versions(intersection_file: &str){
         if r1_exists & r2_exists{
             let (fr1, lacc1) = match get_filesize_and_lastupdate(&root1_file) {
                 Ok(val) => (val.0, val.1),
-                Err(why) => panic!("{}",why)
+                Err(why) => {
+                    println!("error: {}",why);
+                    (1000, SystemTime::now())
+                }
             };
             let (fr2, lacc2) = match get_filesize_and_lastupdate(&root2_file) {
                 Ok(val) => (val.0, val.1),
-                Err(why) => panic!("{}",why)
+                Err(why) => {
+                    println!("error: {}",why);
+                    (1000, SystemTime::now())
+                }
             };
             root3_file.push_str(&line);
             let path_version = Path::new(&root3_file);
@@ -184,9 +192,18 @@ fn do_versions(intersection_file: &str){
             if fr1 == fr2{
                 // delete_file(&)
                 println!("== > File r1: {}\nFile r2: {} size: {}", &root1_file,&root2_file, &fr1);
-                println!("lacc1: {} lacc2: {}",lacc1, lacc2);
-
-                if lacc1 > lacc2{
+                println!("lacc1: {:?} lacc2: {:?}",lacc1, lacc2);
+                let isnewer = match lacc1.duration_since(lacc2) {
+                    Ok(duration) => {
+                        println!("File1 is {} seconds newer than File2.", duration.as_secs());
+                        true
+                    },
+                    Err(e) => {
+                        println!("File2 is newer by {} seconds.", e.duration().as_secs());
+                        false
+                    },
+                };
+                if isnewer {
                     //delete file root2
                     delete_file(&root2_file).expect("Cannot delete r2 file");
                     match move_file(&root1_file, &root3_file) {
@@ -223,41 +240,45 @@ fn do_versions(intersection_file: &str){
 }
 
 fn main(){
-    println!("FIRST PHASE");
-    //define root1, root2 & root3
-    let root1 = Path::new(&ROOT1);    
-    let root2 = Path::new(&ROOT2);
-    let root3 = Path::new(&ROOT3);    
-    //define containers data
-    //fr1 -> Files from Root 1
-    let mut fr1: Vec<String> = Vec::new();
-    let mut fr2: Vec<String> = Vec::new();
-    //get_files from root1 & root2
-    match get_files(&root1, &mut fr1){
-        Ok(_) => println!("Succesfully get root1's files"),
-        Err(why) => panic!("The error is: {}", why)
-    }
-    match get_files(&root2, &mut fr2){
-        Ok(_) => println!("Succesfully get root2's files"),
-        Err(why) => panic!("The error is: {}", why)
-    }
+    // println!("FIRST PHASE");
+    // //define root1, root2 & root3
+    // let root1 = Path::new(&ROOT1);    
+    // let root2 = Path::new(&ROOT2);
+    // let root3 = Path::new(&ROOT3);    
+    // //define containers data
+    // //fr1 -> Files from Root 1
+    // let mut fr1: Vec<String> = Vec::new();
+    // let mut fr2: Vec<String> = Vec::new();
+    // //get_files from root1 & root2
+    // match get_files(&root1, &mut fr1){
+    //     Ok(_) => println!("Succesfully get root1's files"),
+    //     Err(why) => panic!("The error is: {}", why)
+    // }
+    // match get_files(&root2, &mut fr2){
+    //     Ok(_) => println!("Succesfully get root2's files"),
+    //     Err(why) => panic!("The error is: {}", why)
+    // }
     
-    print_vector(&fr1);
-    print_vector(&fr2);
+    // // print_vector(&fr1);
+    // // print_vector(&fr2);
 
-    //Now write the files in a persistent .log file
-    // let root1_logname = "root1_file.log";
-    // let root2_logname = "root2_file.log";
-    let mut prefix = root1.display().to_string();    
-    remove_prefix_in_place(&mut fr1, &prefix);
-    prefix = root2.display().to_string();
-    remove_prefix_in_place(&mut fr2, &prefix);
+    // //Now write the files in a persistent .log file
+    // // let root1_logname = "root1_file.log";
+    // // let root2_logname = "root2_file.log";
+    // let mut prefix = root1.display().to_string();    
+    // remove_prefix_in_place(&mut fr1, &prefix);
+    // prefix = root2.display().to_string();
+    // remove_prefix_in_place(&mut fr2, &prefix);
 
-    // write_rootn_files(&fr1, &root1_logname);
-    // write_rootn_files(&fr2, &root2_logname);
-    store_files(fr1,fr2); 
-    create_dir(&ROOT3);
-    move_files(&R1_R2, &ROOT3, &ROOT1);
-    move_files(&R2_R1, &ROOT3, &ROOT2);
+    // // write_rootn_files(&fr1, &root1_logname);
+    // // write_rootn_files(&fr2, &root2_logname);
+    // store_files(fr1,fr2); 
+
+
+    // SECOND PHASE - DO the job
+
+    // create_dir(&ROOT3);
+    // move_files(&R1_R2, &ROOT3, &ROOT1);
+    // move_files(&R2_R1, &ROOT3, &ROOT2);
     do_versions(&INTERSECTION);
 }
