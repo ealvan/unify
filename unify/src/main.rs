@@ -16,9 +16,9 @@ use std::path::{self, Path};
 use std::io::Write;
 use std::fs::{DirBuilder,Metadata};
 
-const ROOT1: &str = "/mnt/e/box_2024-02-23/data/documentsEdsel/COMEDOR"; //E:\box_2024-02-23\data\documentsEdsel\COMEDOR
-const ROOT2: &str = "/mnt/e/Boxalmost2023-76.8/box/documentsEdsel/COMEDOR"; //E:\Boxalmost2023-76.8\box\documentsEdsel\COMEDOR
-const ROOT3: &str = "/mnt/e/test_script"; 
+const ROOT1: &str = "r1";//"/mnt/e/box_2024-02-23/data/documentsEdsel/COMEDOR"; //E:\box_2024-02-23\data\documentsEdsel\COMEDOR
+const ROOT2: &str = "r2";//"/mnt/e/Boxalmost2023-76.8/box/documentsEdsel/COMEDOR"; //E:\Boxalmost2023-76.8\box\documentsEdsel\COMEDOR
+const ROOT3: &str = "r3";//"/mnt/e/test_script"; 
 const INTERSECTION:&str = "root1_and_root2.log";
 const R1_R2:&str = "root1-root2.log";
 const R2_R1:&str = "root2-root1.log";
@@ -80,11 +80,11 @@ fn store_files(fr1: Vec<String>, fr2: Vec<String>){
     let root1_set: HashSet<_> = fr1.into_iter().collect();
     let root2_set: HashSet<_> = fr2.into_iter().collect();
 
-    let common: HashSet<_> = root1_set.intersection(&root2_set).cloned().collect();
+    let common: HashSet<String> = root1_set.intersection(&root2_set).cloned().collect();
     write_rootn_files(&common, &INTERSECTION);
-    let dif1: HashSet<_> = root1_set.difference(&root2_set).cloned().collect();
+    let dif1: HashSet<String> = root1_set.difference(&root2_set).cloned().collect();
     write_rootn_files(&dif1, &R1_R2);
-    let dif2: HashSet<_> = root2_set.difference(&root1_set).cloned().collect();
+    let dif2: HashSet<String> = root2_set.difference(&root1_set).cloned().collect();
     write_rootn_files(&dif2, &R2_R1);
 }
 
@@ -135,8 +135,8 @@ fn move_files(from: &str, to: &str, prefix: &str){
             pdest = pdest.parent().unwrap();
 
             if ! pdest.exists() {
-                let pdest = pdest.display().to_string();            
-                create_dir_path(&pdest);        
+                let pdest = pdest.display().to_string();
+                create_dir_path(&pdest);
             }
             match move_file(&current_file, &destination) {
                 Ok(_) => println!("move_file OK"),
@@ -158,7 +158,7 @@ fn do_versions(intersection_file: &str){
     let mut root1_file = String::from(ROOT1);
     let mut root2_file = String::from(ROOT2);
     let mut root3_file = String::from(ROOT3);
-
+    let now = SystemTime::now();
     for line in read_to_string(intersection_file).unwrap().lines(){
         root1_file.push_str(&line);
         root2_file.push_str(&line);
@@ -166,27 +166,32 @@ fn do_versions(intersection_file: &str){
         let r2_exists: &Path = Path::new(&root2_file);
         let r1_exists = r1_exists.exists();
         let r2_exists = r2_exists.exists();
+
         if r1_exists & r2_exists{
             let (fr1, lacc1) = match get_filesize_and_lastupdate(&root1_file) {
                 Ok(val) => (val.0, val.1),
                 Err(why) => {
                     println!("error: {}",why);
-                    (1000, SystemTime::now())
+                    (1000, now)
                 }
             };
             let (fr2, lacc2) = match get_filesize_and_lastupdate(&root2_file) {
                 Ok(val) => (val.0, val.1),
                 Err(why) => {
                     println!("error: {}",why);
-                    (1000, SystemTime::now())
+                    (1000, now)
                 }
             };
             root3_file.push_str(&line);
             let path_version = Path::new(&root3_file);
-            let parent_path = path_version.parent().unwrap().to_str().unwrap();
-            let parent_path_ = Path::new(&parent_path);
-            if ! parent_path_.exists(){
-                let pdest = parent_path_.display().to_string();
+            let parent_path = path_version.parent().unwrap();
+            let parent_exists = match path_version.parent() {
+                Some(p) => p.exists(),
+                None => false
+            };
+            // let parent_path_ = Path::new(&parent_path);
+            if ! parent_exists {
+                let pdest = parent_path.display().to_string();
                 create_dir_path(&pdest);
             }
             if fr1 == fr2{
@@ -221,13 +226,14 @@ fn do_versions(intersection_file: &str){
             }else{
                 println!("!= > File r1: {}\nFile r2: {} fs1:{} fs2:{}", &root1_file, &root2_file, &fr1, &fr2);
                 let filename = path_version.file_name().unwrap().to_str().unwrap();
-                let new_version_path = format!("{parent_path}/v1_{filename}");
+                let parent_path_filename = parent_path.to_str().unwrap(); 
+                let new_version_path = format!("{parent_path_filename}/v1_{filename}");
                 
                 match move_file(&root1_file, &new_version_path) {
                     Ok(_) => println!("move_file OK"),
                     Err(why) => println!("{}",why)
                 };
-                let new_version_path = format!("{parent_path}/v2_{filename}");
+                let new_version_path = format!("{parent_path_filename}/v2_{filename}");
 
                 match move_file(&root2_file, &new_version_path) {
                     Ok(_) => println!("move_file OK"),
@@ -240,45 +246,47 @@ fn do_versions(intersection_file: &str){
 }
 
 fn main(){
-    // println!("FIRST PHASE");
-    // //define root1, root2 & root3
-    // let root1 = Path::new(&ROOT1);    
-    // let root2 = Path::new(&ROOT2);
-    // let root3 = Path::new(&ROOT3);    
-    // //define containers data
-    // //fr1 -> Files from Root 1
-    // let mut fr1: Vec<String> = Vec::new();
-    // let mut fr2: Vec<String> = Vec::new();
-    // //get_files from root1 & root2
-    // match get_files(&root1, &mut fr1){
-    //     Ok(_) => println!("Succesfully get root1's files"),
-    //     Err(why) => panic!("The error is: {}", why)
-    // }
-    // match get_files(&root2, &mut fr2){
-    //     Ok(_) => println!("Succesfully get root2's files"),
-    //     Err(why) => panic!("The error is: {}", why)
-    // }
+    println!("FIRST PHASE");
+    //define root1, root2 & root3
+    let root1 = Path::new(&ROOT1);    
+    let root2 = Path::new(&ROOT2);
+    let root3 = Path::new(&ROOT3);    
+    //define containers data
+    //fr1 -> Files from Root 1
+    let mut fr1: Vec<String> = Vec::new();
+    let mut fr2: Vec<String> = Vec::new();
+    //get_files from root1 & root2
+    match get_files(&root1, &mut fr1){
+        Ok(_) => println!("Succesfully get root1's files"),
+        Err(why) => panic!("The error is: {}", why)
+    }
+    match get_files(&root2, &mut fr2){
+        Ok(_) => println!("Succesfully get root2's files"),
+        Err(why) => panic!("The error is: {}", why)
+    }
     
-    // // print_vector(&fr1);
-    // // print_vector(&fr2);
+    print_vector(&fr1);
+    print_vector(&fr2);
 
-    // //Now write the files in a persistent .log file
-    // // let root1_logname = "root1_file.log";
-    // // let root2_logname = "root2_file.log";
-    // let mut prefix = root1.display().to_string();    
-    // remove_prefix_in_place(&mut fr1, &prefix);
-    // prefix = root2.display().to_string();
-    // remove_prefix_in_place(&mut fr2, &prefix);
+    let mut prefix = root1.display().to_string();    
+    remove_prefix_in_place(&mut fr1, &prefix);
+    prefix = root2.display().to_string();
+    remove_prefix_in_place(&mut fr2, &prefix);
 
-    // // write_rootn_files(&fr1, &root1_logname);
-    // // write_rootn_files(&fr2, &root2_logname);
-    // store_files(fr1,fr2); 
+    // write_rootn_files(&fr1, &root1_logname);
+    // write_rootn_files(&fr2, &root2_logname);
+    store_files(fr1,fr2); 
 
 
-    // SECOND PHASE - DO the job
+    println!("SECOND PHASE - DO the job");
+    
 
-    // create_dir(&ROOT3);
-    // move_files(&R1_R2, &ROOT3, &ROOT1);
-    // move_files(&R2_R1, &ROOT3, &ROOT2);
+    match  create_dir(&ROOT3) {
+        Ok(_) => println!("Succesfully created dir: {}", &ROOT3),
+        Err(why) => panic!("Error on create dir {} why: {}", &ROOT3, why)
+    }
+    
+    move_files(&R1_R2, &ROOT3, &ROOT1);
+    move_files(&R2_R1, &ROOT3, &ROOT2);
     do_versions(&INTERSECTION);
 }
