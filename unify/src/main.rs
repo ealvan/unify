@@ -276,11 +276,7 @@ fn main(){
     // write_rootn_files(&fr1, &root1_logname);
     // write_rootn_files(&fr2, &root2_logname);
     store_files(fr1,fr2); 
-
-
     println!("SECOND PHASE - DO the job");
-    
-
     match  create_dir(&ROOT3) {
         Ok(_) => println!("Succesfully created dir: {}", &ROOT3),
         Err(why) => panic!("Error on create dir {} why: {}", &ROOT3, why)
