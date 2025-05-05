@@ -1,12 +1,12 @@
-use crate::utils::toolbox::{get_files,remove_prefix_in_place, store_files};
+use crate::utils::toolbox::{get_files,remove_prefix_in_place, store_files, move_files, do_versions};
 use crate::actions::operations::Paths;
 pub mod utils;
 pub mod actions;
 use std::path::Path;
 
-const ROOT1: &str = "r1";//"/mnt/e/box_2024-02-23/data/documentsEdsel/COMEDOR"; //E:\box_2024-02-23\data\documentsEdsel\COMEDOR
-const ROOT2: &str = "r2";//"/mnt/e/Boxalmost2023-76.8/box/documentsEdsel/COMEDOR"; //E:\Boxalmost2023-76.8\box\documentsEdsel\COMEDOR
-const ROOT3: &str = "r3";//"/mnt/e/test_script"; 
+const ROOT1: &str = "/mnt/e/unify";//"/mnt/e/box_2024-02-23/data/documentsEdsel/COMEDOR"; //E:\box_2024-02-23\data\documentsEdsel\COMEDOR
+const ROOT2: &str = "/mnt/e/unify2";//"/mnt/e/Boxalmost2023-76.8/box/documentsEdsel/COMEDOR"; //E:\Boxalmost2023-76.8\box\documentsEdsel\COMEDOR
+const ROOT3: &str = "/mnt/e/unifyall";//"/mnt/e/test_script"; 
 
 const INTERSECTION:&str = "root1_and_root2.log";
 const R1_R2:&str = "root1-root2.log";
@@ -42,4 +42,7 @@ fn main(){
     remove_prefix_in_place(&mut fr2, &prefix);
     store_files(fr1, fr2, paths);
 
+    // move_files(&R1_R2, &ROOT3, &ROOT1);
+    // move_files(&R2_R1, &ROOT3, &ROOT2);
+    // do_versions(&INTERSECTION, &ROOT1, &ROOT2, &ROOT3);
 }
