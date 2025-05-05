@@ -15,34 +15,34 @@ const R2_R1:&str = "root2-root1.log";
 fn main(){
     println!("Unify");
     
-    let paths = Paths{
-        intersection: String::from(INTERSECTION),
-        r1_r2: String::from(R1_R2),
-        r2_r1: String::from(R2_R1)
-    };
+    // let paths = Paths{
+    //     intersection: String::from(INTERSECTION),
+    //     r1_r2: String::from(R1_R2),
+    //     r2_r1: String::from(R2_R1)
+    // };
 
-    let root1 = Path::new(&ROOT1);    
-    let root2 = Path::new(&ROOT2);
-    let root3 = Path::new(&ROOT3);
+    // let root1 = Path::new(&ROOT1);    
+    // let root2 = Path::new(&ROOT2);
+    // let root3 = Path::new(&ROOT3);
     
-    let mut fr1: Vec<String> = Vec::new();
-    let mut fr2: Vec<String> = Vec::new();
+    // let mut fr1: Vec<String> = Vec::new();
+    // let mut fr2: Vec<String> = Vec::new();
 
-    match get_files(&root1, &mut fr1){
-        Ok(_) => println!("Succesfully get root1's files"),
-        Err(why) => panic!("The error is: {}", why)
-    }
-    match get_files(&root2, &mut fr2){
-        Ok(_) => println!("Succesfully get root2's files"),
-        Err(why) => panic!("The error is: {}", why)
-    }
-    let mut prefix = root1.display().to_string();
-    remove_prefix_in_place(&mut fr1, &prefix);
-    prefix = root2.display().to_string();
-    remove_prefix_in_place(&mut fr2, &prefix);
-    store_files(fr1, fr2, paths);
+    // match get_files(&root1, &mut fr1){
+    //     Ok(_) => println!("Succesfully get root1's files"),
+    //     Err(why) => panic!("The error is: {}", why)
+    // }
+    // match get_files(&root2, &mut fr2){
+    //     Ok(_) => println!("Succesfully get root2's files"),
+    //     Err(why) => panic!("The error is: {}", why)
+    // }
+    // let mut prefix = root1.display().to_string();
+    // remove_prefix_in_place(&mut fr1, &prefix);
+    // prefix = root2.display().to_string();
+    // remove_prefix_in_place(&mut fr2, &prefix);
+    // store_files(fr1, fr2, paths);
 
-    // move_files(&R1_R2, &ROOT3, &ROOT1);
-    // move_files(&R2_R1, &ROOT3, &ROOT2);
-    // do_versions(&INTERSECTION, &ROOT1, &ROOT2, &ROOT3);
+    move_files(&R1_R2, &ROOT3, &ROOT1);
+    move_files(&R2_R1, &ROOT3, &ROOT2);
+    do_versions(&INTERSECTION, &ROOT1, &ROOT2, &ROOT3);
 }
